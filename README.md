@@ -24,7 +24,6 @@ Dataset: Centre Médico-Chirurgical de Réadaptation des Massues (Lyon, França)
 ---
 
 ## Estrutura do projeto
-
 ```
 deploy_ml/
 ├── modelo.pkl                       # Modelo Random Forest serializado
@@ -39,7 +38,6 @@ deploy_ml/
 ---
 
 ## Etapa 1 — Executar localmente
-
 ```bash
 pip install -r requirements.txt
 python inference.py
@@ -54,7 +52,6 @@ A API estará disponível em `http://localhost:8000`.
 **Método:** `POST`  
 **URL:** `http://localhost:8000/predict`  
 **Body:** raw → JSON
-
 ```json
 [
   {
@@ -69,7 +66,6 @@ A API estará disponível em `http://localhost:8000`.
 ```
 
 **Resposta esperada:**
-
 ```json
 {
   "predicao": [0]
@@ -79,7 +75,6 @@ A API estará disponível em `http://localhost:8000`.
 ---
 
 ## Etapa 3 — Build e execução com Docker
-
 ```bash
 # Construir a imagem
 docker build -t modelo .
@@ -99,45 +94,30 @@ Testar novamente no Postman com a mesma requisição acima.
 - Conta Azure ativa
 
 ### Comandos
-
 ```bash
 # Login
 az login
 
-# Criar resource group
-az group create --name rg-spine-api --location eastus
+# Criar resource group (Brazil South — região disponível para Azure for Students FIAP)
+az group create --name rg-spine-api --location brazilsouth
 
 # Criar App Service Plan (free tier)
-az appservice plan create \
-  --name plan-spine-api \
-  --resource-group rg-spine-api \
-  --sku F1 \
-  --is-linux
+az appservice plan create --name plan-spine-api --resource-group rg-spine-api --sku F1 --is-linux
 
 # Criar Web App com Python 3.11
-az webapp create \
-  --resource-group rg-spine-api \
-  --plan plan-spine-api \
-  --name spine-disorder-api \
-  --runtime "PYTHON:3.11"
+az webapp create --resource-group rg-spine-api --plan plan-spine-api --name spine-disorder-api --runtime "PYTHON:3.11"
 
 # Configurar startup
-az webapp config set \
-  --resource-group rg-spine-api \
-  --name spine-disorder-api \
-  --startup-file "gunicorn --bind=0.0.0.0:8000 --timeout 600 inference:app"
+az webapp config set --resource-group rg-spine-api --name spine-disorder-api --startup-file "python inference.py"
 
-# Empacotar e fazer deploy
-zip -r deploy.zip inference.py modelo.pkl requirements.txt
+# Empacotar (Windows PowerShell)
+Compress-Archive -Path inference.py,modelo.pkl,requirements.txt -DestinationPath deploy.zip -Force
 
-az webapp deployment source config-zip \
-  --resource-group rg-spine-api \
-  --name spine-disorder-api \
-  --src deploy.zip
+# Fazer deploy
+az webapp deploy --resource-group rg-spine-api --name spine-disorder-api --src-path deploy.zip --type zip
 ```
 
 ### Testar após o deploy
-
 ```bash
 curl -X POST https://spine-disorder-api.azurewebsites.net/predict \
   -H "Content-Type: application/json" \
@@ -147,7 +127,6 @@ curl -X POST https://spine-disorder-api.azurewebsites.net/predict \
 ---
 
 ## Fluxo completo
-
 ```
 Treinar modelo (notebook)
       ↓
