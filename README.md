@@ -72,6 +72,11 @@ A API estará disponível em `http://localhost:8000`.
 }
 ```
 
+Também é possível verificar o status da API via `GET`:
+
+**Método:** `GET`  
+**URL:** `http://localhost:8000/`  
+
 ---
 
 ## Etapa 3 — Build e execução com Docker
@@ -108,13 +113,16 @@ az appservice plan create --name plan-spine-api --resource-group rg-spine-api --
 az webapp create --resource-group rg-spine-api --plan plan-spine-api --name spine-disorder-api --runtime "PYTHON:3.11"
 
 # Configurar startup
-az webapp config set --resource-group rg-spine-api --name spine-disorder-api --startup-file "python inference.py"
+az webapp config set --resource-group rg-spine-api --name spine-disorder-api --startup-file "gunicorn --bind=0.0.0.0:8000 --timeout 600 --workers 1 inference:app"
+
+# Habilitar instalação automática de dependências durante o deploy
+az webapp config appsettings set --resource-group rg-spine-api --name spine-disorder-api --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true WEBSITES_PORT=8000
 
 # Empacotar (Windows PowerShell)
 Compress-Archive -Path inference.py,modelo.pkl,requirements.txt -DestinationPath deploy.zip -Force
 
 # Fazer deploy
-az webapp deploy --resource-group rg-spine-api --name spine-disorder-api --src-path deploy.zip --type zip
+az webapp deploy --resource-group rg-spine-api --name spine-disorder-api --src-path deploy.zip --type zip --clean true
 ```
 
 ### Testar após o deploy
@@ -122,6 +130,13 @@ az webapp deploy --resource-group rg-spine-api --name spine-disorder-api --src-p
 curl -X POST https://spine-disorder-api.azurewebsites.net/predict \
   -H "Content-Type: application/json" \
   -d '[{"V1": 63.03, "V2": 22.55, "V3": 39.61, "V4": 40.48, "V5": 98.67, "V6": -0.25}]'
+```
+
+**Resposta esperada:**
+```json
+{
+  "predicao": [0]
+}
 ```
 
 ---
